@@ -1,6 +1,5 @@
 
-
-#CoverCouch
+# <img align="right" src="http://jquerymy.com/i/covercouch130h.png" /> Cover Couch
 
 CoverCouch implements document grained r/w/d ACL for CouchDB. CoverCouch acts as proxy – original CouchDB REST API kept untouched, but each request to Couch – r/w/d, \_changes feed, \_view, \_update, \_list or other fn call, replication – *everything* is filtered.
 
