@@ -112,7 +112,7 @@ module.exports = function(){
 						odw = (isA(od.owners)?od.owners:[]).sort(),
 						oda = isA(od.acl)?od.acl.sort()+'':'',
 						ndc = nd.creator,
-						ndw = (isA(nd.owners)?nd.owners:null).sort(),
+						ndw = (isA(nd.owners)?nd.owners:[]).sort(),
 						nda = isA(nd.acl)?nd.acl.sort()+'':'';
 
 					if (odc && odc != ndc) throw({
