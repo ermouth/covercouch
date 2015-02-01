@@ -1,11 +1,11 @@
 
 # <img align="right" src="http://jquerymy.com/i/covercouch130h.png" /> Cover Couch
 
-CoverCouch implements document grained r/w/d ACL for CouchDB. CoverCouch acts as proxy – original CouchDB REST API kept untouched, but each request to Couch – r/w/d, \_changes feed, \_view, \_update, \_list or other fn call, replication – *everything* is filtered.
+CoverCouch implements per-document r/w/d ACL for CouchDB. CoverCouch acts as proxy – original CouchDB REST API kept untouched, but each request to Couch – r/w/d, \_changes feed, \_view, \_update, \_list or other fn call, replication – *everything* is filtered.
 
-Per-document ACL is defined using `creator`,`owners` and `acl` properties of the doc. Combination of their values, prepared by `_design/acl/_view/acl` view function, reflects final doc ACL.
+ACL is defined using `creator`,`owners` and `acl` properties of a doc. Their values, combined by `_design/acl/_view/acl` view function, reflect final ACL for a doc.
 
-Also CoverCouch implements per-method fine grained ACL – some paths like `_update/someFnName` can be restricted for several roles or users. CoverCouch can even restrict on query basis – for example we can allow `attachments=true` only for several roles.
+Also CoverCouch implements per-method fine-grained ACL – some paths like `_update/someFnName` can be restricted for several roles or users. CoverCouch can even restrict on query basis – for example we can allow `attachments=true` only for several roles.
 
 All these rules, ACL view function and other ACL-related stuff are stored in `_design/acl` design doc. This ddoc defines access rules for particular CouchDB bucket.
 
@@ -39,7 +39,7 @@ Now you have CouchDB wrapped with r/w/d ACL.
 
 __Below text describes ACL behavior with default `_design/acl` ddoc. You can write your own implementation of it.__
 
-Per-document ACL is defined using `creator`,`owners` and `acl` properties of particular doc. Also its `parent` property may point to ‘parent’ doc – in this case ACL is inherited from parent, if any.
+Per-document ACL is defined using `creator`,`owners` and `acl` properties of a doc. Also its `parent` property may point to ‘parent’ doc – in this case ACL is inherited from parent, if any.
 
 All these properties are optional. If the first three are skipped, doc assumed to be free for r/w/d by any bucket user.
 
