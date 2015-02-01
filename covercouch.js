@@ -1,5 +1,5 @@
 /**
- * CoverCouch 0.1
+ * CoverCouch 0.1.1 main
  * Read ACL for CouchDB
  *
  * Created by ermouth on 18.01.15.

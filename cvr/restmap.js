@@ -1,5 +1,5 @@
 /**
- * CoverCouch 0.1 REST map
+ * CoverCouch 0.1.1 REST map
  * Created by ermouth on 22.01.15.
  */
 

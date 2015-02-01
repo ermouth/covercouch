@@ -1,8 +1,9 @@
 {
 	"name": "covercouch",
 	"description": "Read/write/delete per-document ACL for CouchDB.",
-	"version": "0.1.0",
+	"version": "0.1.2",
 	"homepage": "https://github.com/ermouth/covercouch",
+	"main":"covercouch.js",
 	"author": {
 		"name": "Dmitri Tabanin",
 		"email": "ermouth@gmail.com"
@@ -18,7 +19,7 @@
 		"url": "git://github.com/ermouth/covercouch.git"
 	},
 	"scripts": {
-		"start": "node covercouch.js"
+		"start": "node ./covercouch.js"
 	},
 	"engines": {
 		"node": ">= 0.10.0"
@@ -38,7 +39,7 @@
 	},
 	"files":[
 		"covercouch.js",
-		"readme.md",
+		"README.md",
 		"cvr/"
 	],
 	"license":"MIT"

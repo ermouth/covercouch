@@ -26,7 +26,9 @@ And yes, it syncs with other CouchDBs and PouchDBs.
 CoverCouch 0.1 is standalone app, it’s not a module right now. To install and run CoverCouch:
 
 * CouchDB 1.6+ and node.js 0.10.35+ required
-* Exec `$ npm install covercouch`
+* `$ git clone git://github.com/ermouth/covercouch.git folderName`
+* `$ cd folderName`
+* `$ npm install`
 * Edit general settings in `/cvr/config.js` 
 * Run `$ node covercouch`
  

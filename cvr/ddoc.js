@@ -1,5 +1,5 @@
 /**
- * CoverCouch 0.1 default _design/acl
+ * CoverCouch 0.1.1 default _design/acl
  * Created by ermouth on 21.01.15.
  */
 

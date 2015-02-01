@@ -1,5 +1,5 @@
 /**
- * CoverCouch 0.1 ACL-related functions
+ * CoverCouch 0.1.1 ACL-related functions
  * Created by ermouth on 19.01.15.
  */
 module.exports = function (cvr) {

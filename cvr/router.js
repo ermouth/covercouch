@@ -1,5 +1,5 @@
 /**
- * CoverCouch 0.1.0 router middleware functions
+ * CoverCouch 0.1.1 router middleware functions
  * Created by ermouth on 18.01.15.
  */
 
