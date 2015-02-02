@@ -19,7 +19,7 @@ module.exports = function(){
 
 		type:"ddoc",
 		stamp:Date.now(),
-		version:"0.1.0",
+		version:"0.1.3",
 
 		acl:[],
 		/*
@@ -107,28 +107,36 @@ module.exports = function(){
 					if (nd.creator && nd.creator != u && nd.creator != uu)
 						throw({forbidden: 'Can’t create doc on behalf of other user.'});
 				} else {
-					// Update
+					// Update or delete
 					var odc = od.creator,
 						odw = (isA(od.owners)?od.owners:[]).sort(),
 						oda = isA(od.acl)?od.acl.sort()+'':'',
 						ndc = nd.creator,
 						ndw = (isA(nd.owners)?nd.owners:[]).sort(),
-						nda = isA(nd.acl)?nd.acl.sort()+'':'';
-
-					if (odc && odc != ndc) throw({
-						forbidden: 'Creator can not be changed.'
-					});
-
-					var notCreator = (ndc != u && ndc != uu),
+						nda = isA(nd.acl)?nd.acl.sort()+'':'',
+						notCreator = (odc != u && odc != uu),
 						notOwner = notCreator && odw.indexOf(u)==-1 && odw.indexOf(uu)==-1;
 
-					if (notCreator && odw+'' != ndw +'') throw({
-						forbidden: 'Owners list can not be changed.'
-					});
+					if (!nd._deleted) {
+						if (odc && odc != ndc) throw({
+							forbidden: 'Creator can not be changed.'
+						});
 
-					if (notOwner && oda != nda) throw({
-						forbidden: 'Readers list can not be changed.'
-					});
+						if (notCreator && odw+'' != ndw +'') throw({
+							forbidden: 'Owners list can not be changed.'
+						});
+
+						if (notOwner && oda != nda) throw({
+							forbidden: 'Readers list can not be changed.'
+						});
+					}
+					else {
+						// Delete
+						if (notOwner) throw({
+							forbidden: 'You can’t delete doc.'
+						});
+					}
+
 				}
 			}
 		}
