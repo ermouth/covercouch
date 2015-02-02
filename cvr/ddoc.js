@@ -19,7 +19,7 @@ module.exports = function(){
 
 		type:"ddoc",
 		stamp:Date.now(),
-		version:"0.1.3",
+		version:"0.1.4",
 
 		acl:[],
 		/*
@@ -132,7 +132,7 @@ module.exports = function(){
 					}
 					else {
 						// Delete
-						if (notOwner) throw({
+						if (notCreator) throw({
 							forbidden: 'You can’t delete doc.'
 						});
 					}

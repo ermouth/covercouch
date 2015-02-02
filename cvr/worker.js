@@ -1,5 +1,5 @@
 /**
- * CoverCouch 0.1.1 Router
+ * CoverCouch 0.1.3 Router
  *
  *
  * Created by ermouth on 18.01.15.
@@ -221,7 +221,7 @@ module.exports = function (runtime) {
 		function _h (){
 			req.h = Object.merge(
 				Object.clone(
-					Object.reject(req.headers,["Authorization","Cookie",'accept-encoding']),
+					Object.reject(req.headers,["Authorization","Cookie",'accept-encoding','content-length']),
 					true
 				),
 				req.session.h,

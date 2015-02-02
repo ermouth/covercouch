@@ -1,9 +1,8 @@
 {
 	"name": "covercouch",
 	"description": "Read/write/delete per-document ACL for CouchDB.",
-	"version": "0.1.2",
+	"version": "0.1.3",
 	"homepage": "https://github.com/ermouth/covercouch",
-	"main":"covercouch.js",
 	"author": {
 		"name": "Dmitri Tabanin",
 		"email": "ermouth@gmail.com"

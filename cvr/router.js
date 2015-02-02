@@ -1,5 +1,5 @@
 /**
- * CoverCouch 0.1.1 router middleware functions
+ * CoverCouch 0.1.3 router middleware functions
  * Created by ermouth on 18.01.15.
  */
 
@@ -28,7 +28,7 @@ module.exports = function (R, cvr) {
 
 		db: function(req,res,next){
 
-			// Checks if principal has rights
+			// Checks if principal has permissions
 			// to access bucket and particular method.
 			// Detects if request has rangekeys.
 			// Caches bucket ACL and ddocs if they are not cached.
@@ -171,13 +171,7 @@ module.exports = function (R, cvr) {
 				r0=[], r1=[],
 				atomic = req.body?req.body.all_or_nothing+''=='true':false,
 				errs = false,
-				p= Object.merge({
-					url: couch + req.url,
-					json: true,
-					body: Object.reject(o,'docs'),
-					method: req.method,
-					headers: { 'Content-Type': 'application/json', Accept: 'application/json' }
-				}, {headers:req.h}, true);
+				p= _gen(req, {body: Object.reject(o,'docs')}, true);
 
 			if (isA(d) && d.length)  {
 
@@ -257,16 +251,7 @@ module.exports = function (R, cvr) {
 				if (!u || u.name=='_anonymous' || u.inactive) {
 					_fail(req,res,{ error:"unauthorized", reason:"Invalid login or password." }, 401);
 				} else {
-					p= {
-						url: couch + req.url,
-						json: true,
-						body: req.body,
-						method: "POST",
-						headers: {
-							'Content-Type': 'application/json',
-							Accept: 'application/json'
-						}
-					};
+					p= _gen(req,{method:"POST"});
 					cvr.Request(p).done(function(data){
 						// We do not memoize session
 						// until next request with cookie
@@ -296,13 +281,7 @@ module.exports = function (R, cvr) {
 			if (!req.body) req.pipe(cvr.request(p)).pipe(res);
 			else {
 				// Make request and send result
-				p= Object.merge({
-					url: couch + req.url,
-					json: true,
-					body: req.body,
-					method: req.method,
-					headers: { 'Content-Type': 'application/json', Accept: 'application/json' }
-				}, {headers:req.h}, true);
+				p= _gen(req,{});
 				cvr.Request(p).done(function(data){ _send(req, res, data); });
 			}
 		},
@@ -314,10 +293,7 @@ module.exports = function (R, cvr) {
 			// and restrictions in _design/acl for
 			// user
 
-			cvr.Request({
-				url: couch + req.url,
-				headers:req.h
-			}).done(function(data){
+			cvr.Request(_gen(req),{}, true).done(function(data){
 				// We do not memoize session
 				// until next request with cookie
 				var a, dbs=[];
@@ -367,8 +343,7 @@ module.exports = function (R, cvr) {
 				dbv.nano.view( path.ddoc2 || path.ddoc, path.view, opts, _list )
 				.pipe(es.split())
 				.pipe(es.mapSync(function(data){
-					var id, key,
-						ok = false;
+					var id, key;
 
 					// detect id
 					id = (data.to(trimPipe).match(/^\{[^\{]*"id":"(.+?)","/)||[]).last();
@@ -435,15 +410,7 @@ module.exports = function (R, cvr) {
 				ctr= 0,
 				prev = null,
 				json = false,
-				p= Object.merge({
-					url: couch + req.url,
-					method: req.method,
-					headers: {
-						'Content-Type': 'application/json',
-						Accept: 'application/json'
-					}
-				}, {headers:req.h}, true);
-			if (req.method == "POST") { p.json = true; p.body = req.body; }
+				p= _gen(req);
 
 			// detect method
 			if (/^(normal|longpoll|continuous|eventsource)$/.test(req.query.feed)) m = req.query.feed.to(2);
@@ -537,15 +504,7 @@ module.exports = function (R, cvr) {
 		rows: function(req,res){
 			// Get and acl-filter rows
 			var db = req.params.db,
-				p= Object.merge({
-					url: couch + req.url,
-					method: req.method,
-					headers: {
-						'Content-Type': 'application/json',
-						Accept: 'application/json'
-					}
-				}, {headers:req.h}, true);
-			if (req.method == "POST") { p.json = true; p.body =  req.body; }
+				p= _gen(req,{}, true);
 
 			if (req.isLong) {
 				// Potentially long request,
@@ -605,8 +564,8 @@ module.exports = function (R, cvr) {
 							'_r',
 								req.method == "POST" && p.body.keys
 						);
-						//r.total_rows= r.rows.length;
 						_send(req, res, [data[0], r]);
+						d=r=null;
 					}
 					else _send(req, res, data);
 				});
@@ -617,16 +576,7 @@ module.exports = function (R, cvr) {
 		revs: function(req,res){
 			// get and acl-filter revs-diff or missing-revs
 			var db = req.params.db;
-			cvr.Request(Object.merge({
-				url: couch + req.url,
-				method: req.method,
-				json:true,
-				body:cvr.ACL.object(req.session, db, req.body, '_r'),
-				headers: {
-					'Content-Type': 'application/json',
-					Accept: 'application/json'
-				}
-			}, {headers:req.h}, true))
+			cvr.Request(_gen( req, { body:cvr.ACL.object(req.session, db, req.body, '_r') }, true))
 			.done(function(data){
 				_send(req, res, data);
 			});
@@ -655,6 +605,34 @@ module.exports = function (R, cvr) {
 
 	// #####  SERVICE FNS ########
 
+	function _gen (req, obj, forceJSON) {
+		// Generates obj for request.js
+		var src = isO(obj)?obj:{},
+			p = {
+			url: couch + req.url,
+			headers:req.h,
+			method: req.method
+		};
+
+		Object.merge(p, src, true);
+
+		if (isO (req.body) && p.method == "POST") {
+			p.body = p.body || req.body;
+			p.json = true;
+			p.headers['content-type']='application/json';
+		}
+
+		if (forceJSON) {
+			p.headers['content-type']='application/json';
+			p.headers.accept = 'application/json';
+		}
+
+		return p;
+
+	}
+
+	//----------------------------
+
 	function _fail(req, res, obj, code){
 		_sendRaw (req,res,obj||{
 			error:"forbidden",
@@ -668,7 +646,6 @@ module.exports = function (R, cvr) {
 		res.set(req.h);
 		res.status(code||200).send(data);
 	}
-
 
 	//----------------------------
 
