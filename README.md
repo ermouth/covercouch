@@ -201,9 +201,13 @@ Each worker restarts daily at an hour, defined in `workers.reloadAt` conf key. R
 
 ## Limitations
 
-### No reduce
+### Reduce
 
 Reduce requests return incorrect (unfiltered) results right now. Gonna fix it in 0.2.
+
+### List functions
+
+List functions may yield incorrect results if preceding _view response had non-unique keys. Problem has same roots as reduce issue, so it would be fixed.
 
 ### Authorization methods
 
@@ -227,7 +231,7 @@ Same for `limit`. Use special views and key ranges, not `limit`, to fetch predic
 
 ### Futon
 
-Futon is visible for everyone, but works fine only for admins. Also please note, that Logout link in Futon does not work since it use `_:_@your.couch.url/_session` auth syntax.
+Futon is visible only for admins. Also please note, that Logout link in Futon does not work since it use `_:_@your.couch.url/_session` auth syntax.
 
 
 ### No COPY method
