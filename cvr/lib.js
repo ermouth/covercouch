@@ -1,6 +1,6 @@
 /**
  * Std lib for JSON manipulation
- * Created by ermouth 2014-11-11
+ * Created by ermouth 2015-02-05
  */
 
 module.exports = function (cw) {
@@ -192,7 +192,30 @@ module.exports = function (cw) {
                 }
                 return data;
             }
-        }
+        },
+        "crc2": (function() {
+            var sdbm, keys = Object.keys;
+
+            sdbm = function (s){
+                for (var hash=0,i=0;i<s.length;i++)
+                    hash=s.charCodeAt(i)+(hash<<6)+(hash<<16)-hash;
+                return (1e11+hash).toString(36);
+            };
+
+            function _footprint (obj){
+                var i,k,h='', arr = isA(obj);
+                if (arr || isO(obj)) {
+                    k=keys(obj);
+                    if (!arr) k.sort();
+                    for(i in k) h+="///"+k[i]+"/"+_footprint(obj[k[i]])+"///";
+                    return sdbm("///"+(arr?'arr':(typeof obj))+"/"+h);
+                }
+                else {
+                    return sdbm(obj+"");
+                }
+            }
+            return _footprint;
+        })()
 
     }
 

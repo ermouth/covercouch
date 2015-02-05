@@ -1,5 +1,5 @@
 /**
- * CoverCouch 0.1.4 router middleware functions
+ * CoverCouch 0.1.5 router middleware functions
  * Created by ermouth on 18.01.15.
  */
 
@@ -154,6 +154,30 @@ module.exports = function (R, cvr) {
             }
         },
 
+        dbinfo : function (req, res, next){
+
+            // Mounts different db info to req,
+            // needed for _list emulation
+
+            var db = req.params.db,
+                done = (function(){  next(); }).after(3);
+
+            cvr.nano.db.get(db, function(e, r){
+                if (!e) req.dbInfo = r;
+                done();
+            });
+
+            cvr.nano.request({ db:db,  path:'/_security' }, function(e, r){
+                if (!e) req.secObj = r;
+                done();
+            });
+
+            cvr.nano.request({ path:'_uuids'  }, function(e, r){
+                if (!e) req.uuid = r.uuids[0];
+                done();
+            });
+        },
+
 
         // ====== Terminal functions ======
 
@@ -261,8 +285,7 @@ module.exports = function (R, cvr) {
                 } else {
                     p = _gen(req, {method: "POST"});
                     cvr.Request(p).done(function (data) {
-                        // We do not memoize session
-                        // until next request with cookie
+                        // We do not memoize session now
                         _send(req, res, data);
                     });
                 }
@@ -319,115 +342,6 @@ module.exports = function (R, cvr) {
                 _send(req, res, [data[0], dbs]);
             });
         },
-
-
-        list: function (req, res) {
-
-            // Get and acl-filter view, then builds
-            // new list request with fixed key list.
-            // This aproach means we request same view twice,
-            // but there is no other way to filter
-            // pipe between view and list functions.
-
-            var db = req.params.db,
-                dbv = cvr.db[db],
-                path = req.params,
-                keys = [],
-                jsopts = {},
-                i, tmp;
-
-            if (dbv) {
-                // First read view to filter out
-
-                if (isO(req.query)) {
-                    // Unjson query params
-                    for (i in req.query) {
-                        tmp = void 0;
-                        try {
-                            tmp = JSON.parse(req.query[i]);
-                        } catch (e) {
-                        }
-                        if (tmp!==void 0) jsopts[i] = tmp;
-                    }
-                }
-                var opts = Object.merge(
-                    Object.reject(jsopts, ['attachments', 'include_docs', 'format','reduce','group']),
-                        req.body && isA(req.body.keys) ? {keys: req.body.keys} : {},
-                    true
-                );
-
-
-                var vtmp = dbv.viewnames[path.ddoc2 || path.ddoc];
-                if (vtmp && vtmp[path.view] == "reduce") {
-                    if (jsopts.reduce!==false) jsopts.group=true;
-                    opts.reduce = false;
-                }
-
-                dbv.nano.view(path.ddoc2 || path.ddoc, path.view, opts, _list)
-                .pipe(es.split())
-                .pipe(es.mapSync(function (data) {
-                    var id, key;
-
-                    // detect id
-                    id = (data.to(trimPipe).match(/^\{[^\{]*"id":"(.+?)","/) || []).last();
-                    if (id && cvr.ACL.doc(req.session, db, id)._r) {
-                        // detect key, need to parse JSON
-                        try {
-                            key = JSON.parse(data.last() == ',' ? data.to(-1) : data).key;
-                        } catch (e) {
-                        }
-
-                        if (undefined !== key) {
-                            keys.push(Object.clone(key, true));
-                            key = null;
-                        }
-                    }
-                    return '';
-                }));
-            }
-            else {
-                // TODO: send err early
-                actors.pipe(req, res);
-            }
-
-            // - - - - - - - - - - - - - - - - - -
-
-            function _list(e, d) {
-                // Request _list with filtered set of keys
-                if (!e) {
-                    var p = {
-                        url: couch
-                        + req.path
-                        + cvr.URL.format({query:_jsonvalues(
-                            Object.reject(jsopts, [
-                                'startkey',
-                                'endkey',
-                                'start_key',
-                                'end_key',
-                                'startkey_docid',
-                                'endkey_docid',
-                                'start_key_doc_id',
-                                'end_key_doc_id',
-                                'inclusive_end',
-                                'limit',
-                                'key',
-                                'keys',
-                                'skip'
-                            ])
-                        )}),
-                        method: "POST",
-                        body: JSON.stringify({keys: keys}),
-                        headers: req.h
-                    };
-                    //console.log(p);
-                    req.pipe(cvr.request(p)).pipe(res);
-                }
-                else {
-                    _fail(req, res, {error: 'view_error', reason: 'Error reading view.'}, 500);
-                }
-            }
-        },
-
 
         changes: function (req, res) {
             // Pipes filtered changes feed
@@ -532,16 +446,122 @@ module.exports = function (R, cvr) {
         },
 
 
+        list: function(req, res){
+            // _list implemetation, 3rd edition
+            var db = req.params.db,
+                dbv = cvr.db[db],
+                path = req.params,
+                jsopts={}, opts,
+                rows=[],
+                resobj={},
+                viewResult = {offset:0, total_rows:0},
+                isReduce = (
+                    cvr.lib.getref(dbv.viewnames, (path.ddoc2||path.ddoc)+'.'+path.view) == 'reduce'
+                    && req.query.reduce != 'false'
+                );
+
+            if (isO(req.query)) jsopts = _unjsonQuery(req.query);
+
+            opts = Object.merge(
+                Object.reject(jsopts, ['attachments', 'include_docs', 'format','reduce','group','group_level']),
+                    req.body && isA(req.body.keys) ? {keys: req.body.keys} : {},
+                true
+            );
+            opts.reduce = false;
+
+            dbv.nano.view(path.ddoc, path.view, opts, _list)
+            .pipe(es.split())
+            .pipe(es.mapSync(function (data) {
+                var id, d;
+                if (data.length<100 && /^\{[^\{]*"offset":[^\{]*\[$/.test(data)) {
+                    d = JSON.parse(data+']}');
+                    viewResult.offset = d.offset;
+                    viewResult.total_rows = d.total_rows;
+                }
+                // detect id
+                id = (data.to(trimPipe).match(/^\{[^\{]*"id":"(.+?)","/) || []).last();
+                if (id && cvr.ACL.doc(req.session, db, id)._r) {
+                    // detect key, need to parse JSON
+                    try {
+                        d = JSON.parse(data.last() == ',' ? data.to(-1) : data);
+                    } catch (e) {}
+
+                    if (undefined !== d) rows.push(d);
+                }
+                return '';
+            }));
+
+            //----------------------------
+
+            function _list(err){
+                if (!err) {
+                    if (isReduce) viewResult =  cvr.Sandbox.reduce(req,rows);
+                    else viewResult.rows = rows;
+
+                    resobj = cvr.Sandbox.list(req, viewResult);
+
+                    // convert vobj to valid response
+                    res.status(resobj.code || 200);
+                    res.set(resobj.headers);
+                    res.send(resobj.body);
+                }
+                else _fail(req,res,{error:"error", reason:err.reason}, err.statusCode)
+            }
+        },
+
+
         rows: function (req, res) {
             // Get and acl-filter rows
             var db = req.params.db,
+                dbv = cvr.db[db],
+                path = req.params,
+                jsopts, opts,
+                rows=[],
                 p = _gen(req, {}, true);
 
-            if (req.isLong) {
-                // Potentially long request,
-                // use pipe ACL (no compression)
-                var prev = null;
-                req.pipe(cvr.request(p))
+            if (
+                cvr.lib.getref(dbv.viewnames, path.ddoc+'.'+path.view) == 'reduce'
+                && req.query.reduce != 'false'
+            ) {
+
+                // We have reduce
+
+                if (isO(req.query)) jsopts = _unjsonQuery(req.query);
+
+                opts = Object.merge(
+                    Object.reject(jsopts, ['attachments', 'include_docs', 'format','reduce','group','group_level']),
+                    req.body && isA(req.body.keys) ? {keys: req.body.keys} : {},
+                    true
+                );
+                opts.reduce = false;
+
+                dbv.nano.view(path.ddoc, path.view, opts, _reduce)
+                .pipe(es.split())
+                .pipe(es.mapSync(function (data) {
+                    var id, d;
+
+                    // detect id
+                    id = (data.to(trimPipe).match(/^\{[^\{]*"id":"(.+?)","/) || []).last();
+                    if (id && cvr.ACL.doc(req.session, db, id)._r) {
+                        // detect key, need to parse JSON
+                        try {
+                            d = JSON.parse(data.last() == ',' ? data.to(-1) : data);
+                        } catch (e) {}
+
+                        if (undefined !== d) rows.push(d);
+                    }
+                    return '';
+                }));
+
+            } else {
+
+                // No reduce
+
+                if (req.isLong) {
+                    // Potentially long request,
+                    // use pipe ACL (no compression)
+                    var prev = null;
+                    req.pipe(cvr.request(p))
                     .pipe(es.split())
                     .pipe(es.mapSync(function (data) {
                         var end = ( ']}' === data ),
@@ -574,33 +594,44 @@ module.exports = function (R, cvr) {
                         else return void 0;
                     }))
                     .pipe(res);
+                }
+
+                else {
+                    // If request has no include_docs & attachments,
+                    // and have some range keys,
+                    // use full-fetch and one-time check.
+                    // Employs compression and generally faster then pipe.
+                    cvr.Request(p).done(function (data) {
+                        var d, r;
+                        try {
+                            d = isS(data[1]) ? JSON.parse(data[1]) : data[1];
+                        } catch (e) {
+                        }
+                        if (d && d.rows) {
+                            r = {total_rows: d.total_rows, offset: (d).offset || 0, rows: []}
+                            r.rows = cvr.ACL.rows(
+                                req.session,
+                                db,
+                                d.rows,
+                                '_r',
+                                    req.method == "POST" && p.body.keys
+                            );
+                            _send(req, res, [data[0], r]);
+                            d = r = null;
+                        }
+                        else _send(req, res, data);
+                    });
+                }
             }
 
-            else {
-                // If request has no include_docs & attachments,
-                // and have some range keys,
-                // use full-fetch and one-time check.
-                // Employs compression and generally faster then pipe.
-                cvr.Request(p).done(function (data) {
-                    var d, r;
-                    try {
-                        d = isS(data[1]) ? JSON.parse(data[1]) : data[1];
-                    } catch (e) {
-                    }
-                    if (d && d.rows) {
-                        r = {total_rows: d.total_rows, offset: (d).offset || 0, rows: []}
-                        r.rows = cvr.ACL.rows(
-                            req.session,
-                            db,
-                            d.rows,
-                            '_r',
-                                req.method == "POST" && p.body.keys
-                        );
-                        _send(req, res, [data[0], r]);
-                        d = r = null;
-                    }
-                    else _send(req, res, data);
-                });
+            //----------------------------
+
+            function _reduce(err){
+                if (!err) {
+                    res.set(req.h);
+                    res.send(cvr.Sandbox.reduce(req,rows));
+                }
+                else _fail(req,res,{error:"error", reason:err.reason}, err.statusCode)
             }
         },
 
@@ -616,7 +647,7 @@ module.exports = function (R, cvr) {
 
 
         test: function (req, res) {
-            res.send({path: req.path, params: req.params, query: req.query, body: req.body});
+            res.send({path: req.path, params: req.params, query: req.query, body: req.body, headers:req.headers});
         }
     };
 
@@ -637,10 +668,31 @@ module.exports = function (R, cvr) {
 
     // #####  SERVICE FNS ########
 
-    function _jsonvalues(obj) {
+    function _jsonQuery(obj) {
         var i, r = isA(obj)?[]:{};
-        for ( i in obj) r[i] = JSON.stringify(obj[i]);
+        for ( i in obj) {
+            if (/^(start\-?key|end\-?key|key)$/.test(i))  r[i] = JSON.stringify(obj[i]);
+            else r[i] = obj[i];
+        }
         return r;
+    }
+
+
+    //----------------------------
+
+    function _unjsonQuery(obj0) {
+        var i, tmp, jsopts = {}, obj = obj0||{};
+        for (i in obj) {
+            tmp = void 0;
+            if (/^(start\-?key|end\-?key|key)$/.test(i)) {
+                try {
+                    tmp = JSON.parse(req.query[i]);
+                } catch (e) {}
+                if (tmp!==void 0) jsopts[i] = tmp;
+            }
+            else jsopts[i] = obj[i];
+        }
+        return jsopts;
     }
 
 

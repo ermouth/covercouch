@@ -1,5 +1,5 @@
 /**
- * CoverCouch 0.1.4 Router
+ * CoverCouch 0.1.5 Router
  *
  *
  * Created by ermouth on 18.01.15.
@@ -57,6 +57,7 @@ module.exports = function (runtime) {
             },
             session: {},
             bodyParser: bodyParser,
+            nano:nano,
 
             Q: Q,
             URL: URL,
@@ -76,6 +77,9 @@ module.exports = function (runtime) {
 
     // ACL-related fns
     require('./acl')(cvr);
+
+    // Sandbox for _list and reduce
+    require('./listreduce')(cvr);
 
     // Middleware
     ([
@@ -169,7 +173,11 @@ module.exports = function (runtime) {
                 );
 
 
-        if (!force && cvr.session[sid]) {
+        if (
+            !force
+            && cvr.session[sid]
+            &&  cvr.session[sid].stamp > Date.now()-conf.couch.renewSessionInterval*1e3
+        ) {
             req.session = cvr.session[sid];
             _h();
             pi.resolve();
@@ -196,6 +204,7 @@ module.exports = function (runtime) {
                         //save user/session
                         s = { id: c, stamp: Date.now(), user: u.name, headers: h.headers};
                         if (cvr.user[u.name] && !cvr.user[u.name].inactive) {
+                            cvr.user[u.name]._userCtx = Object.clone(u, true);
                             cvr.session[c] = s;
                         } else {
                             ok = false;
@@ -448,7 +457,13 @@ module.exports = function (runtime) {
                     dbv.viewnames[ddoc] = {};
                     for (j in tmp.views) {
                         if (isF(tmp.views[j].map)) {
-                            if (isF(tmp.views[j].reduce)) dbv.viewnames[ddoc][j] = "reduce";
+                            if (
+                                isF(tmp.views[j].reduce)
+                                ||
+                                /^_(sum|count|stats)$/.test(tmp.views[j].reduce)
+                            ) {
+                                dbv.viewnames[ddoc][j] = "reduce";
+                            }
                             else dbv.viewnames[ddoc][j] = "map";
                         }
                     }

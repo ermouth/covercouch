@@ -1,5 +1,5 @@
 /**
- * CoverCouch 0.1.4 configuration
+ * CoverCouch 0.1.5 configuration
  * Created by ermouth on 18.01.15.
  */
 
@@ -28,6 +28,7 @@ module.exports = function (runtime) {
             nano: "http://login:pass@127.0.0.1:5984",       // Couch URL with admin login:pass
             users: "_users",                                // Users bucket
             maxIdLength: 200,           // Max _id length
+            renewSessionInterval:300,   // Seconds between subsequent _session request
             preload: [                  // Buckets to preload and to insert acl ddoc if none
                 // "sales","dev"
             ]

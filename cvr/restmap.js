@@ -1,5 +1,5 @@
 /**
- * CoverCouch 0.1.4 REST map
+ * CoverCouch 0.1.5 REST map
  * Created by ermouth on 22.01.15.
  */
 
@@ -48,10 +48,10 @@ module.exports = function (cvr) {
                 '/_show/show': 'pipe',
                 '/_rewrite/p': 'admin',
 
-                '/_list/list/view':     'db,list',
+                '/_list/list/view':     'db,dbinfo,list',
                 '/_show/show/id':       'db,doc,pipe',
 
-                '/_list/list/ddoc2/view':   'db,list'
+                '/_list/list/ddoc2/view':   'db,dbinfo,list'
             }
         }
     },
@@ -78,11 +78,11 @@ module.exports = function (cvr) {
                 '/_show/show':  'db,pipe',
                 '/_update/update':      'db,pipe',
 
-                '/_list/list/view':     'db,list',
+                '/_list/list/view':     'db,body,dbinfo,list',
                 '/_show/show/id':       'db,body,doc,pipe',
                 '/_update/update/id':   'db,body,doc,pipe',			// Update checks R, not W permissions!
 
-                '/_list/list/ddoc2/view':   'db,list'
+                '/_list/list/ddoc2/view':   'db,body,dbinfo,list'
             }
         }
     },

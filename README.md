@@ -1,9 +1,9 @@
 
-# <img align="right" src="http://jquerymy.com/i/covercouch130h.png" /> Cover Couch
+# <img align="right" src="http://jquerymy.com/i/covercouch130h.png" /> Cover Couch 0.1*&beta;*
 
-CoverCouch implements per-document r/w/d ACL for CouchDB. CoverCouch acts as proxy – original CouchDB REST API kept untouched, but each request to Couch – r/w/d, \_changes feed, \_view, \_update, \_list or other fn call, replication – *everything* is filtered.
+CoverCouch implements per-document r/w/d ACL for CouchDB. CoverCouch acts as proxy – original CouchDB REST API kept untouched, but all requests to Couch – r/w/d, \_changes feed, \_view, \_update, \_list or other fn call, replication – *everything* is filtered. 
 
-ACL is defined using `creator`,`owners` and `acl` properties of a doc. Their values, combined by `_design/acl/_view/acl` view function, reflect final ACL for a doc.
+Document ACL is defined using `creator`,`owners` and `acl` properties of a doc. Their values, combined by `_design/acl/_view/acl` view function, reflect final ACL for a doc.
 
 Also CoverCouch implements per-method fine-grained ACL – some paths like `_update/someFnName` can be restricted for several roles or users. CoverCouch can even restrict on query basis – for example we can allow `attachments=true` only for several roles.
 
@@ -16,9 +16,11 @@ Other CoverCouch features:
 * multi-worker, workers are independent,
 * has rate-locker, rejects excessive activity early,
 * very fast – atomic ACL resolve is sync and takes <10µs,
-* non-polling replies without attaches are gzipped in most cases.
+* non-polling replies without attaches are gzipped in most cases,
+* docs can inherit ACL from parent docs
+* syncs with other CouchDBs and PouchDBs.
 
-And yes, it syncs with other CouchDBs and PouchDBs.
+Special note: reduce and \_list work fine, since they are emulated and ingest only filtered \_view feeds.
 
 ## Quick start
 
@@ -201,13 +203,9 @@ Each worker restarts daily at an hour, defined in `workers.reloadAt` conf key. R
 
 ## Limitations
 
-### Reduce
-
-Reduce requests return incorrect (unfiltered) results right now. Gonna fix it in 0.2.
-
 ### List functions
 
-List functions may yield incorrect results if preceding _view response had non-unique keys. Problem has same roots as reduce issue, so it would be fixed.
+Since _list functions are emulated inside CoverCouch, they do not support `provides()` inside. Gonna fix it in 0.2.
 
 ### Authorization methods
 
