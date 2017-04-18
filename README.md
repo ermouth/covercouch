@@ -70,7 +70,7 @@ Pointer from ‘child’ doc to its ‘parent’, `_id` of ‘parent’ doc. Par
 
 Useful for comment-like docs – they may inherit ACL from parent post. Changes in parent ACL modify resulting access rules of children without changing child docs themselves.
 
-###Example docs
+### Example docs
 ````
 {
     "_id": "123abc", "_rev": "1-abcd", 
