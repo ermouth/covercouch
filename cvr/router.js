@@ -66,8 +66,8 @@ module.exports = function (R, cvr) {
                 if (!dbv.restricted || !dbv._restrict[req.method]) _isLong();
                 else {
                     var acl = null,
-                        allow = false;
-                    rules = dbv._restrict[req.method],
+                        allow = false,
+                        rules = dbv._restrict[req.method],
                         url = req.url.from(req.params.db.length + 1);
                     rules.forEach(function (e) {
                         if (e[0].test(url)) {
