@@ -1,5 +1,5 @@
 
-# <img align="right" src="http://jquerymy.com/i/covercouch130h.png" /> Cover Couch 0.1*&beta;*
+# <img align="right" src="http://jquerymy.com/i/covercouch130h.png" /> Cover Couch 0.1&beta;
 
 CoverCouch implements per-document r/w/d ACL for CouchDB. CoverCouch acts as proxy – original CouchDB REST API kept untouched, but all requests to Couch – r/w/d, \_changes feed, \_view, \_update, \_list or other fn call, replication – *everything* is filtered. 
 
@@ -26,7 +26,7 @@ Special note: reduce and \_list work fine, since they are emulated and ingest on
 
 CoverCouch 0.1 is standalone app, it’s not a module right now. To install and run CoverCouch:
 
-* CouchDB 1.6+ and node.js 0.10.35+ required
+* CouchDB 1.6–1.7 and node.js 0.10.35+ required, never tested with Couch 2.x
 * `$ git clone git://github.com/ermouth/covercouch.git folderName`
 * `$ cd folderName`
 * `$ npm install`
